@@ -1,9 +1,16 @@
 import React, { useEffect } from 'react';
 import { useAppDispatch, useAppSelector } from '../../app/hooks';
-import Loading from '../../components/Loading/Loading';
-import { selectState, setLoading } from '../../features/counter/counterSlice';
 import tagObj from '../../assets/data/tags.json';
-import sampleImg from '../../assets/images/sampleImg.jpeg';
+import Loading from '../../components/Loading/Loading';
+import {
+  generateImage,
+  generateImageSliceSelector,
+  generateQueuedImage,
+} from '../../features/generate/generateImageSlice';
+import {
+  GenerateImageBody,
+  GenerateImageProcessingResponse,
+} from '../../features/generate/types';
 
 interface Tag {
   group: string;
@@ -30,10 +37,9 @@ const MainContainer = () => {
   const [generatedImg, setGeneratedImg] = React.useState<string | null>(null);
   const [isGenerateClicked, setIsGenerateClicked] =
     React.useState<boolean>(false);
-  const state = useAppSelector(selectState);
+  const generateImageState = useAppSelector(generateImageSliceSelector);
   const dispatch = useAppDispatch();
-  const { loading } = state;
-  console.log({ isGenerateClicked, loading });
+  const { loading, generatedImageData, error } = generateImageState;
 
   const handleTagClick = (tag: Tag, selectedTagName: string) => {
     const { group } = tag;
@@ -85,19 +91,37 @@ const MainContainer = () => {
     setSelectedTags(defaultTags);
   };
 
-  useEffect(() => {
-    // if isGenerateClicked is true, set loading to true for 5 seconds
+  console.log({
+    promptText: selectedTags.map((obj) => obj.tagnName).join(', '),
+  });
+
+  const generateImgBody: GenerateImageBody = {
+    key: import.meta.env.VITE_API_KEY as string,
+    guidance_scale: 7.5,
+    seed: null,
+    prompt: `an ultra realistic photo of beautiful, ${selectedTags
+      .map((obj) => obj.tagnName)
+      .join(', ')}, symmetrical balance, in-frame`,
+    negative_prompt:
+      'painting, extra fingers, mutated hands, poorly drawn hands, poorly drawn face, deformed, ugly, blurry, bad anatomy, bad proportions, extra limbs, cloned face, skinny, glitchy, double torso, extra arms, extra hands, mangled fingers, missing lips, ugly face, distorted face, extra legs',
+    width: '512',
+    height: '512',
+    samples: '1',
+    num_inference_steps: '20',
+    safety_checker: 'off',
+    webhook: null,
+    track_id: null,
+  };
+
+  const createPromptFromArray = useEffect(() => {
     if (isGenerateClicked) {
-      dispatch(setLoading(true));
-      setTimeout(() => {
-        dispatch(setLoading(false));
-        setGeneratedImg(sampleImg);
-      }, 5000);
+      dispatch(generateImage(generateImgBody));
     }
 
     return () => {
       setIsGenerateClicked(false);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isGenerateClicked, dispatch]);
 
   // is tag selected
@@ -106,6 +130,25 @@ const MainContainer = () => {
       (obj: SelectedTag) => obj.tagnName === selectedTagName
     );
   };
+
+  /*  useEffect(() => {
+    if (
+      generatedImageData &&
+      generatedImageData.status === 'processing' &&
+      generatedImageData.id
+    ) {
+      const generateQueuedImgConfig = {
+        body: {
+          key: import.meta.env.VITE_API_KEY as string,
+        },
+        id: generatedImageData.id,
+      };
+
+      setTimeout(() => {
+        dispatch(generateQueuedImage(generateQueuedImgConfig));
+      }, generatedImageData.eta * 1000);
+    }
+  }, [generatedImageData, dispatch]); */
 
   return (
     <>
@@ -142,17 +185,22 @@ const MainContainer = () => {
          */}
         </div>
         <Loading loading={loading} />
-        {generatedImg && !loading && (
+        {generatedImageData && generatedImageData.output && !loading && (
           <div className="flex flex-row w-full overflow-auto mb-8 justify-center">
             <div>
               <div className="text-white text-center underline m-auto">
                 <img
-                  src={generatedImg}
+                  src={generatedImageData.output[0]}
                   alt=""
                   className="m-auto max-w-sm sm:max-w-lg"
                 />
               </div>
             </div>
+          </div>
+        )}
+        {error && !loading && (
+          <div className="text-red-500 text-center underline m-auto">
+            {error}
           </div>
         )}
 
