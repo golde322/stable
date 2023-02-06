@@ -17,7 +17,7 @@ interface Meta {
 }
 
 export interface GenerateImageBody {
-  key: string | null;
+  key?: string | null;
   model_id?: string;
   prompt: string;
   samples: string;

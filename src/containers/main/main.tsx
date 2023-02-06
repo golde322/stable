@@ -91,12 +91,9 @@ const MainContainer = () => {
     setSelectedTags(defaultTags);
   };
 
-  console.log({
-    promptText: selectedTags.map((obj) => obj.tagnName).join(', '),
-  });
-
   const generateImgBody: GenerateImageBody = {
-    key: import.meta.env.VITE_API_KEY as string,
+    /* 
+    key: import.meta.env.VITE_API_KEY as string, */
     guidance_scale: 7.5,
     seed: null,
     prompt: `an ultra realistic photo of beautiful, ${selectedTags
